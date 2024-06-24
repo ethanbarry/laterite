@@ -1,0 +1,15 @@
+[package]
+name = "laterite_cas"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+
+[dependencies]
+ansi_term = "0.12.1"
+ariadne = { version = "0.4.1", features = ["auto-color"] }
+chumsky = "0.9.3"
+rustyline = "14.0.0"
+laterite_core = { path = "../laterite_core" }
+malachite = "0.4.14"

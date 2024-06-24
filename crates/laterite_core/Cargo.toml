@@ -1,0 +1,10 @@
+[package]
+name = "laterite_core"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+
+[dependencies]
+malachite = "0.4.14"

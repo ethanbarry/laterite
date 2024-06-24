@@ -1,0 +1,12 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.0"
+authors = ["Ethan Barry"]
+description = "A simple computer algebra system for high school-level math."
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+malachite = "0.4.14"
