@@ -10,7 +10,7 @@
 // %% provided code in accordance with that  %%
 // %% license.                               %%
 // %%               ----++----               %%
-// %% interpreter.rs: provides the language. %%
+// %% parser.rs: parses the input lines.     %%
 // %%               ----++----               %%
 // %%           C O P Y R I G H T            %%
 // %%              ETHAN  BARRY              %%
@@ -44,16 +44,14 @@ pub fn parser() -> impl Parser<char, Box<Expression>, Error = Simple<char>> {
         let ident = text::ident()
             .padded()
             .map(|s| Box::new(Expression::Variable(s)));
-
-        // Obtain a decimal number.
-        let digits = text::digits(10);
+        // Obtain a decimal value.
         let frac = just(".")
-            .then(digits)
+            .then(text::digits(10))
             .map(|(dot, digits): (&str, String)| dot.to_owned() + &digits);
-        // Combine the two.
+        // Combine the two with optional negation.
         let rational = just('-')
             .or_not()
-            .then(digits)
+            .then(text::digits(10))
             .map(|(c, mut s)| {
                 if let Some(char) = c {
                     s.insert(0, char);
@@ -77,14 +75,37 @@ pub fn parser() -> impl Parser<char, Box<Expression>, Error = Simple<char>> {
                 }
             });
 
-        let factor = choice((
-            ident,
-            rational,
-            expr.clone().delimited_by(just('('), just(')')),
-        ))
-        .padded()
-        .boxed();
+        let factor = ident
+            .or(rational)
+            .or(expr.clone().delimited_by(just('('), just(')')))
+            .padded()
+            .boxed();
 
-        ident.or(rational).or(factor)
+        let term = factor
+            .clone()
+            .then(
+                choice((just('*'), just('/')))
+                    .then(factor.clone())
+                    .repeated(),
+            )
+            .foldl(|lhs, (op, rhs)| match op {
+                '*' => Box::new(Expression::Mul(lhs, rhs)),
+                '/' => Box::new(Expression::Div(lhs, rhs)),
+                _ => unreachable!(),
+            })
+            .or(factor);
+
+        let addition = term
+            .clone()
+            .then(choice((just('+'), just('-'))).then(term.clone()).repeated())
+            .foldl(|lhs, (op, rhs)| match op {
+                '+' => Box::new(Expression::Add(lhs, rhs)),
+                '-' => Box::new(Expression::Sub(lhs, rhs)),
+                _ => unreachable!(),
+            })
+            .or(term);
+
+        addition
     })
+    .then_ignore(end())
 }
