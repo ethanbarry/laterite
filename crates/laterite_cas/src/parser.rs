@@ -17,7 +17,6 @@
 // %%                  2024                  %%
 // %%%%%%%%%%%%%%%%%%%% || %%%%%%%%%%%%%%%%%%%%
 
-use ariadne::{Color, Fmt, Label, Report, ReportKind, Source};
 use chumsky::prelude::*;
 
 use laterite_core::interpreter::Expression;
@@ -30,7 +29,7 @@ use laterite_core::interpreter::Expression;
     <def>       ::= "func " <ident> "(" <arguments> ")" " = " <expr>
     <arguments> ::= [a-z]+ | [a-z]+ (", " [a-z]+ )+
     <callargs>  ::= <expr> | <expr> (", " <expr>)+
-    <expr>      ::= <term> | <term> "+" <expr> | <term> "-" <expr> | "@" <ident> "(" <expr> ")"
+    <expr>      ::= <term> | <term> "+" <expr> | <term> "-" <expr> | "" <ident> "(" <expr> ")"
     <term>      ::= <factor> | <factor> "*" <term> | <factor> "/" <term>
     <factor>    ::= "(" <expr> ")" | <ident> | <num>
     <ident>     ::= [a-z]+
@@ -76,15 +75,18 @@ pub fn parser() -> impl Parser<char, Box<Expression>, Error = Simple<char>> {
                 }
             });
 
-        // TODO: Improve this to enable calling functions with multiple arguments...
         let call = just('@')
             .then(ident)
-            .then(expr.clone().padded().delimited_by(just('('), just(')')))
-            .map(|((_, identifier), argument)| match *identifier {
-                Expression::Variable(name) => Box::new(Expression::Call {
-                    name,
-                    arguments: vec![argument],
-                }),
+            .then(
+                expr.clone()
+                    .separated_by(just(','))
+                    .at_least(1)
+                    .at_most(2)
+                    .padded()
+                    .delimited_by(just('('), just(')')),
+            )
+            .map(|((_, identifier), arguments)| match *identifier {
+                Expression::Variable(name) => Box::new(Expression::Call { name, arguments }),
                 _ => unreachable!(),
             });
 
@@ -123,6 +125,4 @@ pub fn parser() -> impl Parser<char, Box<Expression>, Error = Simple<char>> {
         addend
     })
     .then_ignore(end())
-
-    // TODO: Add support for exponentiation.
 }
